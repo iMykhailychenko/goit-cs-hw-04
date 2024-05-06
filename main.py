@@ -1,5 +1,5 @@
 import time
-from multiprocessing import Process, Manager
+from multiprocessing import Manager, Process
 from queue import Queue
 from threading import Thread
 
@@ -8,12 +8,13 @@ from utils import seed
 
 def search_in_file(file_path, keywords, results):
     found = {}
-    with open(file_path, 'r') as file:
+    with open(file_path, "r") as file:
         for line_number, line in enumerate(file, start=1):
             for keyword in keywords:
                 if keyword in line:
                     found.setdefault(keyword, []).append((file_path, line_number))
     results.put(found)
+
 
 def process_files_threading(file_list, keywords):
     results = Queue()
@@ -42,7 +43,9 @@ def process_files_multiprocessing(file_list, keywords):
         processes = []
 
         for file_path in file_list:
-            process = Process(target=search_in_file, args=(file_path, keywords, results))
+            process = Process(
+                target=search_in_file, args=(file_path, keywords, results)
+            )
             processes.append(process)
             process.start()
 
@@ -56,6 +59,7 @@ def process_files_multiprocessing(file_list, keywords):
                 search_results.setdefault(keyword, []).extend(occurrences)
 
     return search_results
+
 
 if __name__ == "__main__":
     files = ["./assets/file1.txt", "./assets/file2.txt", "./assets/file3.txt"]
