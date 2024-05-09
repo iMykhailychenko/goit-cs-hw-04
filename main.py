@@ -1,7 +1,6 @@
 import time
 from multiprocessing import Manager, Process
 from multiprocessing import RLock as MpLock
-from queue import Queue
 from threading import RLock as ThLock
 from threading import Thread
 
