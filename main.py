@@ -1,92 +1,75 @@
 import time
 from multiprocessing import Manager, Process
+from multiprocessing import RLock as MpLock
 from queue import Queue
+from threading import RLock as ThLock
 from threading import Thread
 
 from utils import seed
 
 
-def search_in_file(file_path, keywords, results):
-    found = {}
-    with open(file_path, "r") as file:
-        for line_number, line in enumerate(file, start=1):
-            for keyword in keywords:
-                if keyword in line:
-                    found.setdefault(keyword, []).append((file_path, line_number))
-    results.put(found)
+def search_in_file(path: str, keywords: list[str], locker, results: dict):
+    try:
+        with locker, open(path, "r") as file:
+            for line_number, line in enumerate(file, start=1):
+                for keyword in keywords:
+                    index = line.find(keyword)
+                    if index > 0:
+                        results[keyword].append(
+                            f'"{keyword}" found at {line_number}:{index}'
+                        )
+    except Exception:
+        print("Error while reading file: ", path)
 
 
+def with_timer(func):
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        print("Execution time:", end_time - start_time, "seconds")
+        print("Results:", result)
+        return result
+
+    return wrapper
+
+
+@with_timer
 def process_files_threading(file_list, keywords):
-    results = Queue()
+    lock = ThLock()
     threads = []
-
-    for file_path in file_list:
-        thread = Thread(target=search_in_file, args=(file_path, keywords, results))
-        threads.append(thread)
-        thread.start()
-
-    for thread in threads:
-        thread.join()
-
-    search_results = {}
-    while not results.empty():
-        found = results.get()
-        for keyword, occurrences in found.items():
-            search_results.setdefault(keyword, []).extend(occurrences)
-
-    return search_results
+    results = {keyword: [] for keyword in keywords}
+    for file in file_list:
+        th = Thread(target=search_in_file, args=(file, keywords, lock, results))
+        th.start()
+        threads.append(th)
+    [th.join() for th in threads]
+    return results
 
 
+@with_timer
 def process_files_multiprocessing(file_list, keywords):
+    lock = MpLock()
+    processes = []
     with Manager() as manager:
-        results = manager.Queue()
-        processes = []
-
-        for file_path in file_list:
-            process = Process(
-                target=search_in_file, args=(file_path, keywords, results)
-            )
-            processes.append(process)
-            process.start()
-
-        for process in processes:
-            process.join()
-
-        search_results = {}
-        while not results.empty():
-            found = results.get()
-            for keyword, occurrences in found.items():
-                search_results.setdefault(keyword, []).extend(occurrences)
-
-    return search_results
+        results = manager.dict({keyword: manager.list() for keyword in keywords})
+        for file in file_list:
+            p = Process(target=search_in_file, args=(file, keywords, lock, results))
+            p.start()
+            processes.append(p)
+        [process.join() for process in processes]
+        return { keyword: list(result) for keyword, result in results.items() }
 
 
 if __name__ == "__main__":
     files = ["./assets/file1.txt", "./assets/file2.txt", "./assets/file3.txt"]
-    keywords = [
-        "keyword1",
-        "keyword2",
-        "keyword3",
-    ]
+    keywords = ["keyword1", "keyword2", "keyword3"]
     seed(files, keywords)
 
     # Багатопотоковий підхід
     print("Threading approach:")
-    start_time_threading = time.time()
-    threading_results = process_files_threading(files, keywords)
-    end_time_threading = time.time()
-    print("Results:", threading_results)
-    print("Execution time:", end_time_threading - start_time_threading, "seconds")
+    process_files_threading(files, keywords)
 
     # Багатопроцесорний підхід
     print("\nMultiprocessing approach:")
-    start_time_multiprocessing = time.time()
-    multiprocessing_results = process_files_multiprocessing(files, keywords)
-    end_time_multiprocessing = time.time()
-
-    print("Results:", multiprocessing_results)
-    print(
-        "Execution time:",
-        end_time_multiprocessing - start_time_multiprocessing,
-        "seconds",
-    )
+    process_files_multiprocessing(files, keywords)

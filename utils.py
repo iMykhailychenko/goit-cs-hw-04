@@ -11,5 +11,5 @@ def seed(files, keywords):
             keyword = keywords[idx]
             text = fake.text(max_nb_chars=10000)
             index = random.randint(0, len(text))
-            text_with_keyword = text[:index] + keyword + text[index:]
+            text_with_keyword = f"{text[:index]} {keyword} {text[index:]}"
             f.write(text_with_keyword)

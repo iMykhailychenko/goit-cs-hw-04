@@ -4,10 +4,10 @@ Approximate results
 
 ```bash
 Threading approach:
-Results: {'keyword1': [('./assets/file1.txt', 80)], 'keyword2': [('./assets/file2.txt', 36)], 'keyword3': [('./assets/file3.txt', 68)]}
-Execution time: 0.0004639625549316406 seconds
+Execution time: 0.0004949569702148438 seconds
+Results: {'keyword1': ['"keyword1" found at 84:24'], 'keyword2': ['"keyword2" found at 38:86'], 'keyword3': ['"keyword3" found at 26:95']}
 
 Multiprocessing approach:
-Results: {'keyword2': [('./assets/file2.txt', 36)], 'keyword1': [('./assets/file1.txt', 80)], 'keyword3': [('./assets/file3.txt', 68)]}
-Execution time: 0.2057490348815918 seconds
+Execution time: 0.21669387817382812 seconds
+Results: {'keyword1': ['"keyword1" found at 84:24'], 'keyword2': ['"keyword2" found at 38:86'], 'keyword3': ['"keyword3" found at 26:95']}
 ```
